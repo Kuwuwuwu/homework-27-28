@@ -244,5 +244,5 @@ Slider.prototype.toggleAutoplay = function () {
 };
 
 this.stopper.addEventListener('click', function () {
-    self.toggleAutoplay();
+  self.toggleAutoplay();
 });

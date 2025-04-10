@@ -232,3 +232,17 @@ Slider.prototype.onEnd = function (e) {
     this.nextSlide();
   }
 };
+
+Slider.prototype.toggleAutoplay = function () {
+    if (this.autoplayInterval) {
+        this.stopAutoplay();
+        this.stopper.textContent = "Start"; // Меняем текст кнопки
+    } else {
+        this.startAutoplay();
+        this.stopper.textContent = "Stop";
+    }
+};
+
+this.stopper.addEventListener('click', function () {
+    self.toggleAutoplay();
+});

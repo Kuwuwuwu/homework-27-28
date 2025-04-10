@@ -1,101 +1,122 @@
-const gallery = document.querySelector('.slider'); 
-const images = gallery.querySelectorAll('.image');
-const scrollLeft = document.querySelector('.scroll-left');
-const scrollRight = document.querySelector('.scroll-right');
-const indicators = document.querySelector('.circle__container');
-const stopper = document.querySelector('.stopper');
+function Slider(selector, options) {
+  this.slider = document.querySelector(selector);
+  this.images = this.slider.querySelectorAll('.image');
+  this.scrollLeft = this.slider.querySelector('.scroll-left');
+  this.scrollRight = this.slider.querySelector('.scroll-right');
+  this.indicators = this.slider.querySelector('.circle__container');
+  this.stopper = this.slider.querySelector('.stopper');
 
-let currentIndex = 0;
-let autoplayInterval;
+  this.currentIndex = 0;
+  this.autoplayInterval = null;
+  this.interval = (options && options.interval) || 3000;
 
-// Функция отображения текущего изображения
-function showSlide(index) {
-  images.forEach((img, i) => {
-    img.classList.remove('active');
-    indicators.children[i].classList.remove('active');
-    if (i === index) {
-      img.classList.add('active');
-      indicators.children[i].classList.add('active');
-    }
-  });
+  this.startX = 0;
+  this.startTime = 0;
+  this.isDragging = false;
+
+  this.init();
 }
 
-// Создание индикаторов
-function createIndicators() {
-  images.forEach((_, index) => {
-    const circle = document.createElement('div');
+Slider.prototype.init = function () {
+  this.createIndicators();
+  this.showSlide(this.currentIndex);
+  this.addEvents();
+  this.startAutoplay();
+};
+
+Slider.prototype.showSlide = function (index) {
+  var self = this;
+  this.images.forEach(function (img, i) {
+    img.classList.toggle('active', i === index);
+    self.indicators.children[i].classList.toggle('active', i === index);
+  });
+};
+
+Slider.prototype.createIndicators = function () {
+  var self = this;
+  this.images.forEach(function (_, index) {
+    var circle = document.createElement('div');
     circle.classList.add('circle');
     if (index === 0) circle.classList.add('active');
-    circle.addEventListener('click', () => {
-      currentIndex = index;
-      showSlide(currentIndex);
+    circle.addEventListener('click', function () {
+      self.currentIndex = index;
+      self.showSlide(self.currentIndex);
     });
-    indicators.appendChild(circle);
+    self.indicators.appendChild(circle);
   });
-}
+};
 
-// Переключение на следующий слайд
-function nextSlide() {
-  currentIndex = (currentIndex + 1) % images.length;
-  showSlide(currentIndex);
-}
+Slider.prototype.nextSlide = function () {
+  this.currentIndex = (this.currentIndex + 1) % this.images.length;
+  this.showSlide(this.currentIndex);
+};
 
-// Переключение на предыдущий слайд
-function prevSlide() {
-  currentIndex = (currentIndex - 1 + images.length) % images.length;
-  showSlide(currentIndex);
-}
+Slider.prototype.prevSlide = function () {
+  this.currentIndex = (this.currentIndex - 1 + this.images.length) % this.images.length;
+  this.showSlide(this.currentIndex);
+};
 
-// Автопроигрывание
-function startAutoplay() {
-  autoplayInterval = setInterval(nextSlide, 3000); // Интервал 3 секунды
-}
+Slider.prototype.startAutoplay = function () {
+  var self = this;
+  this.autoplayInterval = setInterval(function () {
+    self.nextSlide();
+  }, this.interval);
+};
 
-// Остановка автопроигрывания
-function stopAutoplay() {
-  clearInterval(autoplayInterval);
-}
+Slider.prototype.stopAutoplay = function () {
+  clearInterval(this.autoplayInterval);
+};
 
-// Тач и мышь свайпы
-let startX = 0;
-let isDragging = false;
+Slider.prototype.addEvents = function () {
+  var self = this;
 
-function onStart(e) {
-  isDragging = true;
-  startX = e.type.includes('mouse') ? e.pageX : e.touches[0].clientX;
-}
+  this.scrollRight.addEventListener('click', function () {
+    self.nextSlide();
+  });
 
-function onEnd(e) {
-  if (!isDragging) return;
-  isDragging = false;
-  const endX = e.type.includes('mouse') ? e.pageX : e.changedTouches[0].clientX;
-  const diff = endX - startX;
+  this.scrollLeft.addEventListener('click', function () {
+    self.prevSlide();
+  });
 
-  if (diff > 50) {
-    prevSlide();
-  } else if (diff < -50) {
-    nextSlide();
+  this.stopper.addEventListener('click', function () {
+    self.stopAutoplay();
+  });
+
+  document.addEventListener('keydown', function (event) {
+    if (event.key === 'ArrowRight') self.nextSlide();
+    if (event.key === 'ArrowLeft') self.prevSlide();
+  });
+
+  this.slider.addEventListener('mousedown', function (e) {
+    self.onStart(e);
+  });
+  this.slider.addEventListener('mouseup', function (e) {
+    self.onEnd(e);
+  });
+  this.slider.addEventListener('touchstart', function (e) {
+    self.onStart(e);
+  });
+  this.slider.addEventListener('touchend', function (e) {
+    self.onEnd(e);
+  });
+};
+
+Slider.prototype.onStart = function (e) {
+  this.isDragging = true;
+  this.startX = e.type.includes('mouse') ? e.pageX : e.touches[0].clientX;
+  this.startTime = new Date().getTime();
+};
+
+Slider.prototype.onEnd = function (e) {
+  if (!this.isDragging) return;
+  this.isDragging = false;
+  var endX = e.type.includes('mouse') ? e.pageX : e.changedTouches[0].clientX;
+  var diff = endX - this.startX;
+  var elapsed = new Date().getTime() - this.startTime;
+
+  if (diff > 50 || (diff > 30 && elapsed < 200)) {
+    this.prevSlide();
+  } else if (diff < -50 || (diff < -30 && elapsed < 200)) {
+    this.nextSlide();
   }
-}
-
-// Подключение событий
-gallery.addEventListener('mousedown', onStart);
-gallery.addEventListener('mouseup', onEnd);
-gallery.addEventListener('touchstart', onStart);
-gallery.addEventListener('touchend', onEnd);
-
-// Инициализация
-createIndicators();
-showSlide(currentIndex);
-startAutoplay();
-
-// Обработчики событий
-scrollRight.addEventListener('click', nextSlide);
-scrollLeft.addEventListener('click', prevSlide);
-stopper.addEventListener('click', stopAutoplay);
-
-// Поддержка клавиш клавиатуры
-document.addEventListener('keydown', (event) => {
-  if (event.key === 'ArrowRight') nextSlide();
-  if (event.key === 'ArrowLeft') prevSlide();
-});
+};

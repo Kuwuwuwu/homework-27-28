@@ -17,6 +17,118 @@ function Slider(selector, options) {
   this.init();
 }
 
+document.addEventListener('DOMContentLoaded', () => {
+  const slider = document.getElementById('slider');
+  const images = slider.querySelectorAll('.image');
+
+  let currentIndex = 0;
+  let autoplayInterval;
+  let startX = 0;
+  let isDragging = false;
+
+  // Создание кнопок навигации
+  const btnLeft = document.createElement('button');
+  btnLeft.className = 'scroll-button scroll-left';
+  btnLeft.setAttribute('aria-label', 'Previous slide');
+  btnLeft.innerHTML = '&#10094;';
+  slider.appendChild(btnLeft);
+
+  const btnRight = document.createElement('button');
+  btnRight.className = 'scroll-button scroll-right';
+  btnRight.setAttribute('aria-label', 'Next slide');
+  btnRight.innerHTML = '&#10095;';
+  slider.appendChild(btnRight);
+
+  // Создание индикаторов
+  const indicators = document.createElement('div');
+  indicators.className = 'circle__container';
+  indicators.setAttribute('aria-label', 'Slide indicators');
+  slider.appendChild(indicators);
+
+  // Создание стоппера
+  const stopper = document.createElement('div');
+  stopper.className = 'stopper';
+  stopper.setAttribute('aria-label', 'Stop autoplay');
+  stopper.innerHTML = '&#10095;';
+  slider.appendChild(stopper);
+
+  // Отображение текущего слайда
+  function showSlide(index) {
+    images.forEach((img, i) => {
+      img.classList.toggle('active', i === index);
+      indicators.children[i].classList.toggle('active', i === index);
+    });
+  }
+
+  // Создание индикаторов
+  images.forEach((_, index) => {
+    const circle = document.createElement('div');
+    circle.classList.add('circle');
+    if (index === 0) circle.classList.add('active');
+    circle.addEventListener('click', () => {
+      currentIndex = index;
+      showSlide(currentIndex);
+    });
+    indicators.appendChild(circle);
+  });
+
+  // Переключение слайдов
+  function nextSlide() {
+    currentIndex = (currentIndex + 1) % images.length;
+    showSlide(currentIndex);
+  }
+
+  function prevSlide() {
+    currentIndex = (currentIndex - 1 + images.length) % images.length;
+    showSlide(currentIndex);
+  }
+
+  // Автопроигрывание
+  function startAutoplay() {
+    autoplayInterval = setInterval(nextSlide, 3000);
+  }
+
+  function stopAutoplay() {
+    clearInterval(autoplayInterval);
+  }
+
+  // Тач/мышь свайпы
+  function onStart(e) {
+    isDragging = true;
+    startX = e.type.includes('mouse') ? e.pageX : e.touches[0].clientX;
+  }
+
+  function onEnd(e) {
+    if (!isDragging) return;
+    isDragging = false;
+    const endX = e.type.includes('mouse') ? e.pageX : e.changedTouches[0].clientX;
+    const diff = endX - startX;
+
+    if (diff > 50) prevSlide();
+    else if (diff < -50) nextSlide();
+  }
+
+  // Навешивание событий
+  btnRight.addEventListener('click', nextSlide);
+  btnLeft.addEventListener('click', prevSlide);
+  stopper.addEventListener('click', stopAutoplay);
+
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'ArrowRight') nextSlide();
+    if (e.key === 'ArrowLeft') prevSlide();
+  });
+
+  slider.addEventListener('mousedown', onStart);
+  slider.addEventListener('mouseup', onEnd);
+  slider.addEventListener('touchstart', onStart);
+  slider.addEventListener('touchend', onEnd);
+
+  // Инициализация
+  showSlide(currentIndex);
+  startAutoplay();
+});
+
+
 Slider.prototype.init = function () {
   this.createIndicators();
   this.showSlide(this.currentIndex);
